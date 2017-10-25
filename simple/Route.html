@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Simple Route</title>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.5/esri/css/main.css">
+  <script src="https://js.arcgis.com/4.5/"></script>
+
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/Graphic",
+      "esri/tasks/RouteTask",
+      "esri/tasks/support/RouteParameters",
+      "esri/tasks/support/FeatureSet",
+      "esri/geometry/Point",
+      "dojo/domReady!"
+    ], function(
+      Map, MapView, Graphic, RouteTask, RouteParameters,
+      FeatureSet, Point
+    ) {
+
+      // initialize the map and map view
+      var map = new Map({
+        basemap: "streets-navigation-vector"
+      });
+      var view = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [-117.2, 34.057],
+        zoom: 13
+      });
+
+      // Point the URL to a valid route service
+      // Note, my url is highly rate limited, follow directions here to create your own
+      // https://developers.arcgis.com/documentation/core-concepts/security-and-authentication/working-with-proxies/
+      var routeTask = new RouteTask({
+        url: "https://utility.arcgis.com/usrsvcs/appservices/fy4D4BY7EOo3ADGm/rest/services/World/Route/NAServer/Route_World/solve"
+      });
+
+      // creat the start (Esri HQ) and stop (favorite burrito place)
+      var start = new Point({
+        longitude: -117.195707,
+        latitude: 34.056495, 
+      });
+      var stop = new Point({
+        longitude: -117.229163,
+        latitude: 34.063049, 
+      });
+
+      // create graphics
+      // NOTE route tasks require GRAPHICS, not just POINTS
+      var startGraphic = new Graphic({
+        geometry: start,
+        symbol: {
+          type: "simple-marker", // autocasts as SimpleMarkerSymbol()
+          color: "green"
+        }
+      });
+      var stopGraphic = new Graphic({
+        geometry: stop,
+        symbol: {
+          type: "simple-marker",
+          color: "red"
+        }
+      });
+
+      // add points to the map
+      view.graphics.addMany([startGraphic, stopGraphic]);
+
+      //construct the route paramaters to govern routing task
+      var routeParams = new RouteParameters({
+        stops: new FeatureSet({
+          features: [startGraphic, stopGraphic]
+        })
+      });
+
+      // solve and add the route to the map
+      routeTask.solve(routeParams).then(data => {
+        console.log(data);
+        var routeResult = data.routeResults[0].route;
+        routeResult.symbol = {
+          type: "simple-line", // autocasts as SimpleLineSymbol()
+          color: [0, 0, 255, 0.5],
+          width: 5
+        };
+        view.graphics.add(routeResult);
+      }, e => {
+        console.log(e);
+      });
+
+    });
+  </script>
+</head>
+<body>
+  <div id="viewDiv"></div>
+</body>
+</html>
