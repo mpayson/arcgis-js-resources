@@ -1,4 +1,6 @@
-# ArcGIS JS Resources & Samples
+## ArcGIS JS Resources & Samples
 
-- Simple
-  - [Simple 2dLayer](/simple/2dLayer.html)
+### Simple
+  - [Simple 2D Layer](/simple/2dLayer.html)
+  - [Simple 3D Layer](/simple/3dLayer.html)
+  - [Simple Route](/simple/route.html)
