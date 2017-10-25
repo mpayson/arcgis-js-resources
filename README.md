@@ -1,6 +1,6 @@
 ## ArcGIS JS Resources & Samples
 
-Previews: https://mpayson.github.io/arcgis-js-res/
+Previews: [https://mpayson.github.io/arcgis-js-res/](https://mpayson.github.io/arcgis-js-res/)
 
 ### Simple Examples
   - [2D Layer](/simple/2dLayer.html)
