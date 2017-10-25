@@ -1,5 +1,3 @@
-## ArcGIS JS Resources & Samples
-
 Previews: [https://mpayson.github.io/arcgis-js-res/](https://mpayson.github.io/arcgis-js-res/)
 
 ### Simple Examples
