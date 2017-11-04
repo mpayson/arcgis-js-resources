@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Simple 2D Layer</title>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.5/esri/css/main.css">
+  
+  <script>
+    var dojoConfig = {
+      has: {
+        // WebGL (BETA) is cool, let's use by default
+        "esri-featurelayer-webgl": 1
+      }
+    };
+  </script>
+  
+  <script src="https://js.arcgis.com/4.5/"></script>
+
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <script>
+    require([
+      "esri/WebMap",
+      "esri/views/MapView",
+      "esri/widgets/Search",
+      "dojo/domReady!"
+    ],
+    function(WebMap, MapView, Search) {
+
+      // Create map and add the layer
+      var webmap = new WebMap({
+        portalItem: {
+          id: "be9e55c14aa443cabe0a84810ba81101"
+        }
+      });
+      
+      // Create the SceneView and add the map
+      var view = new MapView({
+        container: "viewDiv",  
+        map: webmap,             
+      });
+
+      view.then(() => {
+
+        const parcelLyr = webmap.layers.find((l) => {
+          return l.title === "SOMA_Parcels";
+        });
+        parcelLyr.outFields = ["*"]
+        var searchWidget = new Search({
+          view: view
+        });
+
+        view.ui.add(searchWidget, {
+          position: "top-right"
+        });
+      });
+
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+</body>
+
+</html>
