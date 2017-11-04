@@ -51,19 +51,29 @@
         map: webmap,             
       });
 
-      view.then(() => {
+      var searchWidget = new Search({
+        view: view,
+        allPlaceholder: "Search ",
+        sources: []
+      });
 
+      view.then(() => {
         const parcelLyr = webmap.layers.find((l) => {
           return l.title === "SOMA_Parcels";
         });
-        parcelLyr.outFields = ["*"]
-        var searchWidget = new Search({
-          view: view
-        });
+        const parcelSource = {
+          featureLayer: parcelLyr,
+          searchFields: ["ADDRESS"],
+          suggestionTemplate: "{ADDRESS}",
+          exactMatch: false,
+          name: "Parcels",
+        };
+        //TODO NOT QUERYING
+        searchWidget.sources.add(parcelSource)
+      });
 
-        view.ui.add(searchWidget, {
-          position: "top-right"
-        });
+      view.ui.add(searchWidget, {
+        position: "top-right"
       });
 
     });
