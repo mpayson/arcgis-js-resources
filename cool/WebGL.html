@@ -37,9 +37,37 @@
       "dojo/domReady!"
     ],
     function(Map, MapView, FeatureLayer) {
+      
+      var markerSymbol = {
+        type: "simple-marker", // autocasts as new SimpleMarkerSymbol(),
+        size: "4px",
+        outline: {  // autocasts as new SimpleLineSymbol()
+          width: 0  // points
+        }
+      };
+
+      var renderer = {
+        type: "simple", // autocasts as new SimpleRenderer()
+        symbol: markerSymbol,
+        visualVariables: [{
+          type: "color",
+          field: "SCORE",
+          stops: [
+          {
+            value: -2,
+            color: "#0ff"
+          },
+          {
+            value: 151,
+            color: "#f0f"
+          }]
+        }]
+      };
+
       // Create FeatureLayer
       var layer = new FeatureLayer({
-        url: "https://services.arcgis.com/q7zPNeKmTWeh7Aor/arcgis/rest/services/a/FeatureServer"
+        url: "https://services.arcgis.com/q7zPNeKmTWeh7Aor/arcgis/rest/services/a/FeatureServer",
+        renderer: renderer
       });
 
       // Create map and add the layer
@@ -57,7 +85,7 @@
         container: "viewDiv",  
         map: map,   
         center: [-73.967569, 40.727724],
-        zoom: 12,          
+        zoom: 12    
       });
 
     });

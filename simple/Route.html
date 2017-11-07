@@ -62,7 +62,7 @@
         latitude: 34.063049, 
       });
 
-      // create graphics
+      // create graphics and add to map
       // NOTE route tasks require GRAPHICS, not just POINTS
       var startGraphic = new Graphic({
         geometry: start,
@@ -78,8 +78,6 @@
           color: "red"
         }
       });
-
-      // add points to the map
       view.graphics.addMany([startGraphic, stopGraphic]);
 
       //construct the route paramaters to govern routing task
