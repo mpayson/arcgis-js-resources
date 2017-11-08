@@ -45,37 +45,53 @@
       "esri/Map",
       "esri/views/MapView",
       "esri/layers/FeatureLayer",
+      "dojo/dom-class",
+      "dojo/dom-attr",
       "dojo/domReady!"
     ],
-    function(Map, MapView, FeatureLayer) {
+    function(Map, MapView, FeatureLayer, domClass, domAttr) {
       // Create FeatureLayer
-      var layer = new FeatureLayer({
-        url: "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trailheads/FeatureServer"
+      let layer = new FeatureLayer({
+        url: "https://services.arcgis.com/q7zPNeKmTWeh7Aor/ArcGIS/rest/services/iframe_demo/FeatureServer/0",
+        outFields: ["url"]
       });
 
       // Create map and add the layer
-      var map = new Map({
+      let map = new Map({
         basemap: "topo-vector",
         layers: [layer]
       });
       
       // Create the MapView and add the map
-      var view = new MapView({
+      let view = new MapView({
         container: "viewDiv",  
         map: map,     
         constraints: {
           snapToZoom: false
-        },        
+        },
+        center: [-117.1625, 32.7071],
+        zoom: 15
       });
-
-      // Zoom to the layer
-      view.then(() => {
-        layer.queryExtent().then(res => {
-          view.goTo(res.extent);
-        }).catch(e => {
-          console.log(e)
+      
+      // When click map, query layer
+      view.whenLayerView(layer)
+        .then(lyrView => {
+          view.on("click", evt => {
+            const screenPoint = {
+              x: evt.x,
+              y: evt.y
+            };
+            // If clicked a point, get url from that point and open iframe window
+            view.hitTest(screenPoint)
+              .then(res => {
+                const graphic = res.results[0].graphic;
+                if(!graphic || !graphic.attributes || !graphic.attributes.url) return;
+                url = graphic.attributes.url;
+                domClass.replace('if-div', 'visible', 'hidden')
+                domAttr.set('iframe', 'src', url);
+              })
+          })
         })
-      });
 
     });
   </script>
@@ -83,8 +99,8 @@
 
 <body>
   <div id="viewDiv"></div>
-  <div id="ifdiv" class="visible">
-    <iframe id="iframe" style="width:100%; height:100%; border:none;" src="http://localhost:5000/playground/helloworld.html"></iframe>
+  <div id="if-div" class="hidden">
+    <iframe id="iframe" style="width:100%; height:100%; border:none;"></iframe>
   </div>
 </body>
 
