@@ -48,10 +48,13 @@
         layers: [layer]
       });
       
-      // Create the SceneView and add the map
+      // Create the MapView and add the map
       var view = new MapView({
         container: "viewDiv",  
-        map: map,             
+        map: map,     
+        constraints: {
+          snapToZoom: false
+        },        
       });
 
       // Zoom to the layer

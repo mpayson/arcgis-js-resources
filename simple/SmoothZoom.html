@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Smooth Zoom</title>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.5/esri/css/main.css">
+  
+  <script src="https://js.arcgis.com/4.5/"></script>
+
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "dojo/domReady!"
+    ],
+    function(Map, MapView) {  
+      // Create map
+      var map = new Map({
+        basemap: "streets-night-vector"
+      });
+      
+      // Create the MapView and add the map
+      var view = new MapView({
+        container: "viewDiv",  
+        map: map,
+        constraints: {
+          snapToZoom: false
+        },
+        center: [-73.967569, 40.727724],
+        zoom: 12,
+      });
+
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+</body>
+
+</html>
+
