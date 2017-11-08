@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Simple 2D Layer</title>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.5/esri/css/main.css">
+  
+  <script>
+    var dojoConfig = {
+      has: {
+        // WebGL (BETA) is cool, let's use by default
+        "esri-featurelayer-webgl": 1
+      }
+    };
+  </script>
+  
+  <script src="https://js.arcgis.com/4.5/"></script>
+
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+    #containerDiv {
+      background-color: white;
+      padding: 3px;
+      text-align: center;
+    }
+  </style>
+
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/layers/FeatureLayer",
+      "esri/renderers/smartMapping/creators/color",
+      "esri/renderers/smartMapping/statistics/histogram",
+      "esri/widgets/ColorSlider",
+      "esri/core/lang",
+      "dojo/on",
+      "dojo/domReady!"
+    ],
+    function(Map, MapView, FeatureLayer, colorRendererCreator, histogram,
+      ColorSlider, lang, on) {
+      
+      // Create map and add the layer
+      var map = new Map({
+        basemap: {
+          portalItem: {
+            id: "4f2e99ba65e34bb8af49733d9778fb8e"
+          }
+        }
+      });
+      
+      // Create the SceneView and add the map
+      var view = new MapView({
+        container: "viewDiv",  
+        map: map,   
+        center: [-73.967569, 40.727724],
+        zoom: 12    
+      });
+
+      // Create FeatureLayer
+      var lyr = new FeatureLayer({
+        url: "https://services.arcgis.com/q7zPNeKmTWeh7Aor/arcgis/rest/services/NYC_Restaurant_Inspections_CSV/FeatureServer",
+        outFields: ["SCORE"]
+      });
+
+      var colorParams = {
+        layer: lyr,
+        basemap: map.basemap,
+        field: "SCORE",
+        theme: "above-and-below"
+      };
+      var sliderParams = {
+        numHandles: 3,
+        syncedHandles: true,
+        container: "slider"
+      };
+
+      colorRendererCreator.createContinuousRenderer(colorParams)
+        .then((response) => {
+          lyr.renderer = response.renderer;
+          map.add(lyr);
+          sliderParams.statistics = response.statistics;
+          sliderParams.visualVariable = response.visualVariable;
+          return histogram({
+            layer: lyr,
+            field: "SCORE"
+          })
+        })
+        .then((histogram) => {
+          sliderParams.histogram = histogram;
+          var colorSlider = new ColorSlider(sliderParams);
+          view.ui.add("containerDiv", "bottom-left");
+
+          on(colorSlider, "handle-value-change", () => {
+            var renderer = lyr.renderer.clone();
+            renderer.visualVariables = [lang.clone(colorSlider.visualVariable)];
+            lyr.renderer = renderer;
+          })
+        })
+        .otherwise((err) => {
+          console.log("oh no, there was an error: ", err)
+        })
+
+
+      // var markerSymbol = {
+      //   type: "simple-marker", // autocasts as new SimpleMarkerSymbol(),
+      //   size: "4px",
+      //   outline: {  // autocasts as new SimpleLineSymbol()
+      //     width: 0  // points
+      //   }
+      // };
+
+      // var renderer = {
+      //   type: "simple", // autocasts as new SimpleRenderer()
+      //   symbol: markerSymbol,
+      //   visualVariables: [{
+      //     type: "color",
+      //     field: "SCORE",
+      //     stops: [
+      //     {
+      //       value: -2,
+      //       color: "#0ff"
+      //     },
+      //     {
+      //       value: 151,
+      //       color: "#f0f"
+      //     }]
+      //   }]
+      // };
+
+
+
+
+
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+  <div id="containerDiv">
+    <div id="slider"></div>
+  </div>
+</body>
+
+</html>
