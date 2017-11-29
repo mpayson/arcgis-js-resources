@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Simple 2D Layer</title>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.5/esri/css/main.css">
+  
+  <script src="https://js.arcgis.com/4.5/"></script>
+
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/layers/FeatureLayer",
+      "esri/layers/GraphicsLayer",
+      "dojo/_base/lang",
+      "dojo/domReady!"
+    ],
+    function(Map, MapView, FeatureLayer, GraphicsLayer, lang) {
+      // Create FeatureLayer
+      const lyr = new FeatureLayer({
+        url: "http://maps.lacity.org/lahub/rest/services/LADOT/MapServer/0/",
+        outFields: ["Bikeway"]
+      });
+
+      // Create a graphics layer for labels
+      const symbolLyr = new GraphicsLayer({
+        graphics: [],
+        minScale: 100000
+      })
+
+      // Create map and add the layer
+      var map = new Map({
+        basemap: {
+          portalItem: {
+            id: "4f2e99ba65e34bb8af49733d9778fb8e"
+          }
+        },
+        layers: [lyr, symbolLyr]
+      });
+      
+      // Create the MapView and add the map
+      var view = new MapView({
+        container: "viewDiv",  
+        map: map,     
+        constraints: {
+          snapToZoom: false
+        },
+        center: [-118.2437, 34.0522],
+        zoom: 12
+      });
+
+      // Define consistent label symbol
+      var symbol = {
+        type: "text",
+        color: "white",
+        font: {
+          size: 12,
+          weight: "bolder"
+        }
+      };
+      
+      view.then(() => {
+        // Add label graphics
+        lyr.queryFeatures().then(res => {
+          for(f of res.features){
+            s = lang.clone(symbol)
+            s.text = f.attributes.Bikeway
+            f.symbol = s
+            symbolLyr.graphics.add(f)
+          }
+        }).catch(e => {
+          console.log(e)
+        })
+      });
+
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+</body>
+
+</html>
