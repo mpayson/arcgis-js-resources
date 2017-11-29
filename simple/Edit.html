@@ -7,15 +7,6 @@
 
   <link rel="stylesheet" href="https://js.arcgis.com/4.5/esri/css/main.css">
   <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.8/css/calcite-web.min.css">
-  
-  <script>
-    var dojoConfig = {
-      has: {
-        // WebGL (BETA) is cool, let's use by default
-        "esri-featurelayer-webgl": 1
-      }
-    };
-  </script>
 
   <script src="https://js.arcgis.com/4.5/"></script>
 
@@ -52,7 +43,9 @@
 
       // Create FeatureLayer
       var lyr = new FeatureLayer({
-        url: "https://services.arcgis.com/q7zPNeKmTWeh7Aor/arcgis/rest/services/edit_sample/FeatureServer"
+        url: "https://services.arcgis.com/q7zPNeKmTWeh7Aor/arcgis/rest/services/edit_sample/FeatureServer",
+        outFields: ["*"],
+        popupTemplate: {title: "FIELD: {field}"}
       });
 
       // Create map and add the layer
@@ -84,8 +77,11 @@
       on(dom.byId("btn"), "click", function() {
         editFeature.attributes.field = Math.ceil(Math.random() * 10);
         const edits = {updateFeatures: [editFeature]};
+        view.popup.visible = false;
         lyr.applyEdits(edits)
-          .then(res => console.log(res))
+          .then(res => {
+            view.popup.visible = true;
+          })
           .otherwise(er => console.log(er));
       });
       
