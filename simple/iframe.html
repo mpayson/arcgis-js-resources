@@ -87,11 +87,11 @@
                 const graphic = res.results[0].graphic;
                 if(!graphic || !graphic.attributes || !graphic.attributes.url) return;
                 url = graphic.attributes.url;
-                domClass.replace('if-div', 'visible', 'hidden')
+                domClass.replace('if-div', 'visible', 'hidden');
                 domAttr.set('iframe', 'src', url);
-              })
-          })
-        })
+              });
+          });
+        });
 
     });
   </script>

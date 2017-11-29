@@ -69,46 +69,81 @@
       // Create FeatureLayer
       var lyr = new FeatureLayer({
         url: "https://services.arcgis.com/q7zPNeKmTWeh7Aor/arcgis/rest/services/NYC_Restaurant_Inspections_CSV/FeatureServer",
-        outFields: ["SCORE"]
+        outFields: ["SCORE"],
+        renderer: {
+          type: "simple",
+          symbol: {
+            type: "simple-marker",
+            size: 2,
+            outline: {  // autocasts as new SimpleLineSymbol()
+              width: 0,
+            }
+          },
+          visualVariables: [{
+            type: "color",
+            field: "SCORE",
+            stops: [
+            {
+              value: 0,
+              color: [50, 205, 50, 0.7]
+            },
+            {
+              value: 50,
+              color: [255, 1, 1, 0.7]
+            }]
+          }]
+        }
       });
+      map.add(lyr)
 
-      var colorParams = {
-        layer: lyr,
-        basemap: map.basemap,
-        field: "SCORE",
-        theme: "above-and-below"
-      };
-      var sliderParams = {
-        numHandles: 3,
-        syncedHandles: true,
-        container: "slider"
-      };
+      view.whenLayerView(lyr)
+        .then(lyrView => {
+          var st
+          var handle = lyrView.watch('updating', (nV, oV, p, obj) => {
+            if(nV === true) st=performance.now();
+            if(nV === false && oV === true && st) {
+              console.log(performance.now() - st);
+            }
+          });
+        });
 
-      colorRendererCreator.createContinuousRenderer(colorParams)
-        .then((response) => {
-          lyr.renderer = response.renderer;
-          map.add(lyr);
-          sliderParams.statistics = response.statistics;
-          sliderParams.visualVariable = response.visualVariable;
-          return histogram({
-            layer: lyr,
-            field: "SCORE"
-          })
-        })
-        .then((histogram) => {
-          sliderParams.histogram = histogram;
-          var colorSlider = new ColorSlider(sliderParams);
-          view.ui.add("containerDiv", "bottom-left");
+      // var colorParams = {
+      //   layer: lyr,
+      //   basemap: map.basemap,
+      //   field: "SCORE",
+      //   theme: "above-and-below"
+      // };
+      // var sliderParams = {
+      //   numHandles: 3,
+      //   syncedHandles: true,
+      //   container: "slider"
+      // };
 
-          on(colorSlider, "handle-value-change", () => {
-            var renderer = lyr.renderer.clone();
-            renderer.visualVariables = [lang.clone(colorSlider.visualVariable)];
-            lyr.renderer = renderer;
-          })
-        })
-        .otherwise((err) => {
-          console.log("oh no, there was an error: ", err)
-        })
+      // colorRendererCreator.createContinuousRenderer(colorParams)
+      //   .then((response) => {
+      //     lyr.renderer = response.renderer;
+      //     map.add(lyr);
+      //     sliderParams.statistics = response.statistics;
+      //     sliderParams.visualVariable = response.visualVariable;
+      //     return histogram({
+      //       layer: lyr,
+      //       field: "SCORE"
+      //     })
+      //   })
+      //   .then((histogram) => {
+      //     sliderParams.histogram = histogram;
+      //     var colorSlider = new ColorSlider(sliderParams);
+      //     view.ui.add("containerDiv", "bottom-left");
+
+      //     on(colorSlider, "handle-value-change", () => {
+      //       var renderer = lyr.renderer.clone();
+      //       renderer.visualVariables = [lang.clone(colorSlider.visualVariable)];
+      //       lyr.renderer = renderer;
+      //     })
+      //   })
+      //   .otherwise((err) => {
+      //     console.log("oh no, there was an error: ", err)
+      //   })
 
 
       // var markerSymbol = {
