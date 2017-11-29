@@ -1,7 +1,9 @@
 # ArcGIS JS Res
 > Quick [ArcGIS JavaScript](https://developers.arcgis.com/javascript/) resources from conversations and personal tinkering
 
-### Simple Examples
+## Resources
+
+### Simple
   - Smooth Map Zoom [code](/simple/SmoothZoom.html) & [live](https://mpayson.github.io/arcgis-js-res/simple/SmoothZoom.html)
   - 2D Layer [code](/simple/2dLayer.html) & [live](https://mpayson.github.io/arcgis-js-res/simple/2dLayer.html)
   - 3D Layer [code](/simple/3dLayer.html) & [live](https://mpayson.github.io/arcgis-js-res/simple/3dLayer.html)
