@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
-  <title>Simple 2D Layer</title>
+  <title>IFrame</title>
 
   <link rel="stylesheet" href="https://js.arcgis.com/4.5/esri/css/main.css">
   
@@ -31,11 +31,11 @@
       display: none !important;
     }
     .visible {
-      width: 20vh;
-      height: 20vh;
+      width: 40%;
+      height: 40%;
       position: absolute;
       z-index: 400;
-      top: 0px;
+      bottom: 0px;
       right: 0px;
     }
   </style>
@@ -52,8 +52,8 @@
     function(Map, MapView, FeatureLayer, domClass, domAttr) {
       // Create FeatureLayer
       let layer = new FeatureLayer({
-        url: "https://services.arcgis.com/q7zPNeKmTWeh7Aor/ArcGIS/rest/services/iframe_demo/FeatureServer/0",
-        outFields: ["url"]
+        url: "https://services3.arcgis.com/hMvhdTQekiLMVZsG/arcgis/rest/services/PanoPositions_URL_Image_iFrame_NoMap/FeatureServer",
+        outFields: ["*"]
       });
 
       // Create map and add the layer
@@ -69,7 +69,7 @@
         constraints: {
           snapToZoom: false
         },
-        center: [-117.1625, 32.7071],
+        center: [-95.38550197, 29.74490348],
         zoom: 15
       });
       
@@ -85,8 +85,8 @@
             view.hitTest(screenPoint)
               .then(res => {
                 const graphic = res.results[0].graphic;
-                if(!graphic || !graphic.attributes || !graphic.attributes.url) return;
-                url = graphic.attributes.url;
+                if(!graphic || !graphic.attributes || !graphic.attributes.url_index) return;
+                url = graphic.attributes.url_index;
                 domClass.replace('if-div', 'visible', 'hidden');
                 domAttr.set('iframe', 'src', url);
               });
