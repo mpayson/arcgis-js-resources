@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Simple 2D Layer</title>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.6/esri/css/main.css">
+    
+  <script>
+    var dojoConfig = {
+      has: {
+        // WebGL (BETA) is cool, let's use by default
+        "esri-featurelayer-webgl": 1
+      }
+    };
+  </script>
+
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="https://js.arcgis.com/4.6/"></script>
+
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+    #chart {
+      position: absolute;
+      bottom: 0px;
+      right: 0px;
+      padding: 10px;
+      z-index: 400;
+    }
+
+    
+  </style>
+
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/SceneView",
+      "dojo/domReady!"
+    ],
+    function(Map, SceneView) {
+
+      // Create map and add the layer
+      var map = new Map({
+        basemap: "topo-vector",
+        ground: "world-elevation"
+      });
+      
+      // Create the MapView and add the map
+      var view = new SceneView({
+        container: "viewDiv",
+        map: map
+      });
+
+      var dataset = [
+          { label: 'Abulia', count: 10 },
+          { label: 'Betelgeuse', count: 20 },
+          { label: 'Cantaloupe', count: 30 },
+          { label: 'Dijkstra', count: 40 }
+        ];
+        var width = 200;
+        var height = 200;
+        var radius = Math.min(width, height) / 2;
+        var color = d3.scaleOrdinal(d3.schemeCategory20b);
+        var svg = d3.select('#chart')
+          .append('svg')
+          .attr('width', width)
+          .attr('height', height)
+          .append('g')
+          .attr('transform', 'translate(' + (width / 2) +
+            ',' + (height / 2) + ')');
+        var arc = d3.arc()
+          .innerRadius(0)
+          .outerRadius(radius);
+        var pie = d3.pie()
+          .value(function(d) { return d.count; })
+          .sort(null);
+        var path = svg.selectAll('path')
+          .data(pie(dataset))
+          .enter()
+          .append('path')
+          .attr('d', arc)
+          .attr('fill', function(d) {
+            return color(d.data.label);
+          });
+
+    });
+
+    
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+  <div id="chart"></div>
+
+</body>
+
+</html>
