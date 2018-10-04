@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Simple 2D Layer</title>
+  
+  <link rel="stylesheet" href="https://jsdev.arcgis.com/4.9/esri/css/main.css">
+  <script src="https://jsdev.arcgis.com/4.9/"></script>
+
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <script>
+    require([
+      "esri/WebMap",
+      "esri/views/MapView",
+      "esri/layers/FeatureLayer",
+      "esri/widgets/Sketch/SketchViewModel",
+      "esri/layers/GraphicsLayer",
+      "esri/widgets/Home",
+      "esri/widgets/Legend",
+      "dojo/dom",
+      "dojo/html",
+      "dojo/domReady!"
+    ],
+    function(WebMap, MapView, FeatureLayer, SketchViewModel,
+            GraphicsLayer, Home, Legend, dom, html) {
+
+      const CONFIG = {
+        mapId: 'cabaa3e87ccb495691b3126a121852ca',
+        binLyrTitle: 'Sewer Pipes 1mi hexagon bins',
+        pipeLyrTitle: 'Sewer Pipes'
+      }      
+
+      /****************************************************
+         * Set up the map view
+      ****************************************************/
+      // Create map
+      var map = new WebMap({
+        portalItem: {id: CONFIG.mapId}
+      });
+      
+      // Create the MapView and add the map
+      var view = new MapView({
+        container: "viewDiv",  
+        map: map,     
+        constraints: {
+          snapToZoom: false
+        },        
+      });
+
+      // get the layer objects
+      let binLyr, pipeLyr, pipeLyrView;
+      
+      view.when(() => {      
+        console.log(map.layers);  
+        pipeLyr = map.layers.find(l => l.title === CONFIG.pipeLyrTitle);
+        binLyr = map.layers.find(l => l.title === CONFIG.binLyrTitle);
+        view.whenLayerView(pipeLyr).then(lyrView => pipeLyrView = lyrView);
+      });
+      
+      // add a few nice widgets and the text div
+      const homeButton = new Home({
+        view: view
+      });
+      const legend = new Legend({
+        view: view
+      })
+      const avgTextElem = dom.byId("avg-text")
+      view.ui.add([homeButton], 'top-left');
+      view.ui.add([avgTextElem, legend], 'top-right');
+      
+      /****************************************************
+         * Fade out the bin layer as you zoom in
+         * (if there's overlap between bin/pipe visible scales)
+      ****************************************************/
+      
+      view.watch("scale", (scale) => {
+        if(!pipeLyr || !binLyr) return;
+        if(scale > pipeLyr.minScale) {
+          binLyr.opacity = 1;
+        } else if(scale < binLyr.maxScale) {
+          binLyr.opacity = 0;
+        } else {
+          binLyr.opacity = (scale - binLyr.maxScale) / (pipeLyr.minScale - binLyr.maxScale);
+        }
+      });
+
+      /****************************************************
+         * Initialize the drawing objects
+      ****************************************************/
+
+      // add a layer to display the sketched polygons
+      const polygonGraphicsLayer = new GraphicsLayer();
+      map.add(polygonGraphicsLayer);
+
+      // create the sketch view model
+      let sketchViewModel = new SketchViewModel({
+        view: view,
+        layer: polygonGraphicsLayer,
+        pointSymbol: {
+          type: "simple-marker",
+          color: [255, 255, 255, 0],
+          size: "1px",
+          outline: { color: "gray", width: 0 }
+        }
+      });
+      
+      // add a button to initiate drawing
+      view.ui.add("select-by-polygon", "top-left");
+      const selectButton = document.getElementById("select-by-polygon");
+
+      // initiate drawing when the button is clicked
+      selectButton.addEventListener("click", function() {
+        view.popup.close();
+        sketchViewModel.create("polygon");
+      });
+
+      /****************************************************
+         * Selection logic
+      ****************************************************/
+      let highlight;
+
+      sketchViewModel.on("create-complete", event => {
+        const geometry = event.geometry;
+        view.graphics.removeAll();
+
+        if(!pipeLyrView) return;
+
+        // client-side statistics query
+        // get average capacity and display it in the text div
+        const statQuery = {
+          geometry: geometry,
+          outStatistics: [{
+            onStatisticField: "CAPACITY",
+            outStatisticFieldName: "CAPACITY_avg",
+            statisticType: "avg"
+          }]
+        };
+        pipeLyrView.queryFeatures(statQuery).then(res => {
+          const graphics = res.features;
+          if(graphics.length < 1) return;          
+          const avg = graphics[0].attributes.CAPACITY_avg;
+          html.set(avgTextElem, `Avg Capacity: ${avg.toFixed(2)}`);
+        })
+        
+        // client-side query for all data and geometries
+        // highlight the selected geometries and log the data
+        const query = {geometry: geometry, outFields: ["*"]}
+        pipeLyrView.queryFeatures(query).then(res => {
+          const graphics = res.features;
+          if(graphics.length < 1) return;
+          if(highlight){
+            highlight.remove();
+          }
+          highlight = pipeLyrView.highlight(graphics);
+          console.log(graphics);
+        })
+
+      });
+
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+  <div id="select-by-polygon" class="esri-widget esri-widget--button esri-widget esri-interactive"
+    title="Select features by polygon">
+    <span class="esri-icon-polygon"></span>
+  </div>
+  <div class="esri-widget" style="text-align: center; padding: 5px" id="avg-text">Avg Capacity: -.--</div>
+</body>
+
+</html>
