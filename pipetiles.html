@@ -26,6 +26,7 @@
       "esri/layers/FeatureLayer",
       "esri/widgets/Sketch/SketchViewModel",
       "esri/layers/GraphicsLayer",
+      "esri/Graphic",
       "esri/widgets/Home",
       "esri/widgets/Legend",
       "dojo/dom",
@@ -33,7 +34,7 @@
       "dojo/domReady!"
     ],
     function(WebMap, MapView, FeatureLayer, SketchViewModel,
-            GraphicsLayer, Home, Legend, dom, html) {
+            GraphicsLayer, Graphic, Home, Legend, dom, html) {
 
       const CONFIG = {
         mapId: '6e311366a87a4d35aae8e6bafb20769e',
@@ -63,7 +64,6 @@
       let tileLyr, pipeLyr, pipeLyrView;
       
       view.when(() => {      
-        console.log(map.layers);  
         pipeLyr = map.layers.find(l => l.title === CONFIG.pipeLyrTitle);
         tileLyr = map.layers.find(l => l.title === CONFIG.tileLyrTitle);
         view.whenLayerView(pipeLyr).then(lyrView => pipeLyrView = lyrView);
@@ -82,7 +82,7 @@
       
       /****************************************************
          * Fade out the bin layer as you zoom in
-         * (if there's overlap between bin/pipe visible scales)
+         * (if there's overlap between bin/pipe visible scales as set in ArcGIS Online)
       ****************************************************/
       
       view.watch("scale", (scale) => {
@@ -134,10 +134,18 @@
       sketchViewModel.on("create-complete", event => {
         const geometry = event.geometry;
         view.graphics.removeAll();
+        polygonGraphicsLayer.removeAll();
+        
+        // Add the selected area as a graphic
+        const graphic = new Graphic({
+          geometry: geometry,
+          symbol: sketchViewModel.graphic.symbol
+        });
+        polygonGraphicsLayer.add(graphic);
 
-        if(!pipeLyrView) return;
+        if(!pipeLyr) return;
 
-        // client-side statistics query
+        // server-side statistics query
         // get average capacity and display it in the text div
         const statQuery = {
           geometry: geometry,
@@ -147,17 +155,20 @@
             statisticType: "avg"
           }]
         };
-        pipeLyrView.queryFeatures(statQuery).then(res => {
+        pipeLyr.queryFeatures(statQuery).then(res => {
           const graphics = res.features;
           if(graphics.length < 1) return;          
           const avg = graphics[0].attributes.CAPACITY_avg;
           html.set(avgTextElem, `Avg Capacity: ${avg.toFixed(2)}`);
         })
-        
-        // client-side query for all data and geometries
-        // highlight the selected geometries and log the data
+
+        // server-side geometry query
+        // if featurelayer is visible, highlight selected geometries
+        // if not, do nothing (for now... could draw graphics over the tile layer)
+
+        if(!pipeLyrView) return;
         const query = {geometry: geometry, outFields: ["*"]}
-        pipeLyrView.queryFeatures(query).then(res => {
+        pipeLyr.queryFeatures(query).then(res => {
           const graphics = res.features;
           if(graphics.length < 1) return;
           if(highlight){
@@ -166,6 +177,7 @@
           highlight = pipeLyrView.highlight(graphics);
           console.log(graphics);
         })
+        
 
       });
 
