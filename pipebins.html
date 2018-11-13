@@ -86,6 +86,7 @@
       
       view.watch("scale", (scale) => {
         if(!pipeLyr || !binLyr) return;
+        console.log(scale, pipeLyr.minScale, pipeLyr.maxScale);
         if(scale > pipeLyr.minScale) {
           binLyr.opacity = 1;
         } else if(scale < binLyr.maxScale) {

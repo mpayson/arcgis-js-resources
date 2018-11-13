@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Selection AOI Demo</title>
+  
+  <link rel="stylesheet" href="https://jsdev.arcgis.com/4.9/esri/css/main.css">
+  <script src="https://jsdev.arcgis.com/4.9/"></script>
+
+  <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.1.0/css/calcite-web.min.css">
+
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+    .hide{
+      display: none;
+    }
+  </style>
+
+  <script>
+    require([
+    // "https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.1.0/js/calcite-web.min.js",
+      "esri/identity/OAuthInfo",
+      "esri/identity/IdentityManager",
+      "esri/Map",
+      "esri/WebMap",
+      "esri/layers/FeatureLayer",
+      "esri/views/MapView",
+      "esri/widgets/Sketch/SketchViewModel",
+      "esri/Graphic",
+      "esri/layers/GraphicsLayer",
+      "esri/widgets/LayerList",
+      "esri/widgets/Expand",
+      "esri/geometry/geometryEngine",
+      "esri/geometry/support/webMercatorUtils",
+      "dojo/dom-attr",
+      "esri/tasks/Locator",
+      "esri/widgets/Search",
+      "dojo/html",
+      "dojo/dom",
+      "dojo/on"
+    // ], function(calcite, Map, MapView, dom) {
+    ], function(OAuthInfo, esriId, Map, WebMap, FeatureLayer, MapView,
+    SketchViewModel, Graphic, GraphicsLayer,LayerList, Expand,
+    geometryEngine, webMercatorUtils, domAttr, Locator, Search, html, dom, on) {
+      
+      let noFlyPoly;
+
+      /****************************************************
+         * Initialize OAuth / Login
+      ****************************************************/
+      
+      const portalUrl = "https://www.arcgis.com/sharing";
+
+      var info = new OAuthInfo({
+        appId: "WwNy6bnHK2YboEpE"
+      });
+      esriId.registerOAuthInfos([info]);
+
+      on(dom.byId("sign-in"), "click", function() {
+        esriId.getCredential(portalUrl);
+      });
+
+      esriId.checkSignInStatus(portalUrl).then((cred) => {
+        if(cred && cred.userId){
+          html.set(dojo.byId("sign-in"), cred.userId);
+        }
+      });
+
+      /****************************************************
+         * Set up the map view
+      ****************************************************/
+
+      let lyr;
+      let map = new Map({
+        basemap: "topo-vector"
+      });
+
+      let view = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [-29.83059, 35.87093],
+        zoom: 3
+      });
+
+      // add a layer to display the sketched polygons
+      let drawGraphic;
+      const polygonGraphicsLayer = new GraphicsLayer({
+        listMode: 'hide'
+      });
+      map.add(polygonGraphicsLayer);
+      
+      // add the input form as a map view element
+      const aoiElem = dom.byId("aoi-form");
+      view.ui.add([aoiElem], 'top-right');
+      view.when(() => aoiElem.classList.remove('hide'))
+      
+      // create a collapsable layer list widget
+      const layerList = new LayerList({
+        container: document.createElement("div"),
+        view: view
+      });
+      const layerListExpand = new Expand({
+        expandIconClass: "esri-icon-layer-list",
+        view: view,
+        content: layerList.domNode,
+        expanded: true
+      });
+      
+      // create a collapsable search widget
+      const searchWidget = new Search({
+        container: document.createElement("div"),
+        view: view
+      });
+      const searchExpand = new Expand({
+        expandIconClass: "esri-icon-search",
+        view: view,
+        content: searchWidget.domNode
+      });
+
+      view.ui.add([searchExpand, layerListExpand], {position: "top-left", index: 0});
+
+      /****************************************************
+         * Listeners for adding custom data
+      ****************************************************/
+      
+      // When a user adds a webmap by id
+      // Load it then zoom to its extent
+      on(dom.byId("map-add"), "click", () => {
+        const v = dom.byId("map-id").value;
+        const id = v ? v : 'f30543457dc444c2ad191fb906fc1cbb';
+        map = new WebMap({
+          portalItem: {id: id}
+        });
+        view.map = map;
+        map.when(() => {
+          view.viewpoint = map.initialViewProperties.viewpoint;
+          map.remove(polygonGraphicsLayer);
+          map.add(polygonGraphicsLayer);
+        })
+      })
+      
+      // When a user adds a no-fly feature layer
+      // Render it and set the no fly zones
+      on(dom.byId("layer-add"), "click", () => {
+        const v = dom.byId("lyr-url").value;
+        const id = v ? v : 'ea9bb8c7cd39460289778f42585a3784';
+        lyr = new FeatureLayer({
+          portalItem: {id: id}
+        });
+        map.add(lyr);
+        lyr.queryFeatures()
+          .then(res => {
+            if(res.features.length < 1) return;
+            const noFlyPolyWGS = res.features[0].geometry;
+            noFlyPoly = webMercatorUtils.geographicToWebMercator(noFlyPolyWGS);
+          })
+          .catch(er => console.log(er))
+      })
+
+      /****************************************************
+         * Initialize the drawing objects
+      ****************************************************/
+
+      // create the sketch view model
+      let sketchViewModel = new SketchViewModel({
+        view: view,
+        layer: polygonGraphicsLayer
+      });
+      
+      // add a button to initiate drawing
+      view.ui.add("select-by-polygon", "top-left");
+      const selectButton = dom.byId("select-by-polygon");
+
+      // initiate drawing when the button is clicked
+      selectButton.addEventListener("click", function() {
+        polygonGraphicsLayer.removeAll();
+        drawGraphic = null;
+        view.popup.close();
+        sketchViewModel.create("polygon");
+      });
+
+      /****************************************************
+         * Geometry validation against no fly zones
+      ****************************************************/
+
+      // Geometry symbols
+      createSymbol = (color, style, width, outlineColor) => {
+        return {
+          type: "simple-fill",
+          style: style,
+          color: color,
+          outline: {
+            color: outlineColor,
+            width: width
+          }
+        }
+      }
+      const invalidSymbol = createSymbol([255, 0, 0], "diagonal-cross", 4, [255, 0, 0]);
+      const validSymbol = createSymbol([0, 170, 255, 0.8], "solid", 2, [255, 255, 255]);
+      
+      // On sketch complete, add the output and allow it to be updated
+      sketchViewModel.on("create-complete", event => {
+        const geometry = event.geometry;
+        drawGraphic = new Graphic({
+          geometry: event.geometry,
+          symbol: validSymbol
+        });
+        polygonGraphicsLayer.add(drawGraphic);
+        sketchViewModel.update(drawGraphic);
+      })
+      
+      // Register event listeners to ensure the AOI doesn't intersect no fly zones
+      const eventTypes = ["update-init", "move-start", "move", "move-complete", "scale-start", "scale", "scale-complete", "rotate-start", "rotate", "rotate-complete", "reshape-start", "reshape", "reshape-complete"]
+
+      const checkGeometry = (event) => {
+        drawGraphic.geometry = event.geometry;
+        if(!noFlyPoly) return;
+        const intersects = geometryEngine.intersects(noFlyPoly, drawGraphic.geometry);
+        drawGraphic.symbol = intersects ? invalidSymbol : validSymbol;
+        setCoords(drawGraphic.geometry.centroid);
+      }
+      const listeners = eventTypes.map(et => 
+        sketchViewModel.on(et, checkGeometry)
+      )
+
+      /****************************************************
+         * Selection logic and functions
+      ****************************************************/
+      let selectGraphic; 
+      
+      // Set user form values based on geometries
+      setText = (name, note) => {
+        domAttr.set(dom.byId("nameText"), 'value', name);
+        domAttr.set(dom.byId("noteText"), 'value', note);
+      }
+      setCoords = (centroid) => {
+        if(centroid){
+          lat = centroid.latitude.toFixed(5);
+          lon = centroid.longitude.toFixed(5);
+          html.set(dojo.byId("coordPar"), `Lat/Lon: ${lat}/${lon}`)
+        } else {
+          html.set(dojo.byId("coordPar"), `Lat/Lon: --`)
+        }
+      }
+      setAddress = (address) => {
+        if(address){
+          html.set(dojo.byId("addrPar"), `Address: ${address}`);
+        } else {
+          html.set(dojo.byId("addrPar"), `Address: --`)
+        }
+      }
+      
+      // Allow user to select displayed polygons through a popup (vs drawing)
+      view.popup.actions.add({
+        title: "Select",
+        id: "select",
+        className: "esri-icon-map-pin"
+      })
+      view.popup.on("trigger-action", event => {
+        if(event.action.id === 'select'){
+          selectGraphic = event.target.selectedFeature;
+          const attrs = selectGraphic.attributes;
+          const geom = selectGraphic.geometry;
+          setText(attrs.id, attrs.notes);
+          setCoords(geom.centroid);
+        }
+      });
+      
+      // Clear the stored data
+      const clrBtn = dom.byId("clrBtn");
+      clrBtn.addEventListener("click", () => {
+        setText('', '');
+        setCoords(null);
+        setAddress('');
+        polygonGraphicsLayer.removeAll();
+        drawGraphic = null;
+        selectGraphic = null;
+        view.popup.close();
+      });
+    
+      // When OK is clicked, geocode and display the location's address
+      const locator = new Locator({
+        url: "http://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer"
+      });
+      const okBtn = dom.byId("okBtn");
+      okBtn.addEventListener("click", () => {
+        let sendGraphic = drawGraphic ? drawGraphic : selectGraphic;
+        if(!sendGraphic) return;
+        const centroid = sendGraphic.geometry.centroid;
+        locator.locationToAddress(centroid).then(res => {
+          setAddress(res.address);
+        })
+        .catch(er => console.log(er));
+      })
+      
+    });
+  </script>
+</head>
+
+<body>
+  <header class="top-nav">
+    <nav class="class-top-nav-list" role="navigation" aria-labelledby="usernav">
+      <a class="top-nav-title margin-left-1">Selection Demo</a>
+      <a id="sign-in" class="top-nav-link icon-ui-user margin-right-1 right" href="#">Sign In</a>
+    </nav>
+  </header>
+  <div id="viewDiv"></div>
+  <div class="esri-widget hide" style="padding: 10px; width: 250px" id="aoi-form">  
+    <h4>Data</h4>
+    <label>
+      WebMap ID
+      <div class="input-group">
+        <input class="input-group-input" type="text" placeholder="add default: f30543457dc444c2ad191fb906fc1cbb" id="map-id"/>
+        <span class="input-group-button">
+          <button class="btn" id="map-add">+</button>
+        </span>
+      </div>
+    </label>
+    <label>
+      Restricted Area (Feature Service) ID
+      <div class="input-group">
+        <input id="lyr-url" class="input-group-input" type="text" placeholder="add default: ea9bb8c7cd39460289778f42585a3784"/>
+        <span class="input-group-button">
+          <button class="btn" id="layer-add">+</button>
+        </span>
+      </div>
+    </label>
+    <h4 class="clearfix">Task Area</h4>
+    <label>
+      Name
+      <input id="nameText" type="text" placeholder="Location name">
+    </label>
+    <label>
+      Notes
+      <input id="noteText" type="text" placeholder="Location notes">
+    </label>
+    <p id="coordPar">Lat/Lon: --</p>
+    <p id="addrPar">Address: --</p>
+    <nav>
+      <button id="okBtn" class="btn btn-grouped">Okay</button>
+      <button id="clrBtn" class="btn btn-grouped btn-clear">Clear</button>
+    </nav>
+  </div>
+
+
+  <div id="select-by-polygon" class="esri-widget esri-widget--button esri-widget esri-interactive"
+    title="Select features by polygon">
+    <span class="esri-icon-polygon"></span>
+  </div>
+</body>
+
+</html>

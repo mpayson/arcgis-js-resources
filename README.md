@@ -11,3 +11,8 @@
 #### `pipetiles` [code](/pipetiles.html) | [live](https://mpayson.github.io/arcgis-js-res/pipetiles.html)
 
 > Same as `pipebins`, but with a [hosted tile layer](https://doc.arcgis.com/en/arcgis-online/manage-data/publish-tiles-from-features.htm) instead of a bin feature layer. To mix it up, you can also select an area of interest at any scale to query capacity / features _on the server_
+
+## User interactions
+
+#### `selectaoi` [code](/selectaoi.html) | [live](https://mpayson.github.io/arcgis-js-res/selectaoi.html)
+> Select an area of interest based on GIS data. Demonstrates: sign in, drawing, drawing validation, pop-up actions, geocoding, input web maps and feature layers, and some _really_ cool imagery
