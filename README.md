@@ -14,5 +14,5 @@
 
 ## User interactions
 
-#### `selectaoi` [code](/selectaoi.html) | [live](https://mpayson.github.io/arcgis-js-res/selectaoi.html)
+#### `selectaoi` [code](/selectaoi.html) | [live](https://mpayson.github.io/arcgis-js-res/pipetiles.html)
 > Select an area of interest based on GIS data. Demonstrates: sign in, drawing, drawing validation, pop-up actions, geocoding, input web maps and feature layers, and some _really_ cool imagery
