@@ -6,7 +6,7 @@
 
 #### `exploreGeoJson` [code](/exploreGeoJson.html) | [live](https://mpayson.github.io/arcgis-js-res/exploreGeoJson.html)
 
-> Display ~50k GeoJson building footprints and dynamically style / perform geospatial queries _on the client_. Click on a bar to highlight that color or click/drag the mouse to query footprints within 1mi of mouse location. The GeoJson is converted to ArcGIS Json with [Terraformer](http://terraformer.io/arcgis-parser/) and the data is a cut of Microsoft's open [building footprints](https://github.com/Microsoft/USBuildingFootprints)
+> Display ~50k GeoJson building footprints and dynamically style / perform geospatial queries _on the client_. The GeoJson is converted to ArcGIS Json with [Terraformer](http://terraformer.io/arcgis-parser/) on load and the data is cut from Microsoft's open [building footprints](https://github.com/Microsoft/USBuildingFootprints)
 
 #### `pipebins` [code](/pipebins.html) | [live](https://mpayson.github.io/arcgis-js-res/pipebins.html)
 
