@@ -174,7 +174,8 @@
       /****************************************************
         * Create and handle color updates
       ****************************************************/
-      // Get array of colors, if there's a selection all other colors are grey
+      // Get array of colors correspondign to labels
+      // if there's a selection all other colors are grey
       function getColorArray(isLine=false, sel=null) {
         let cAr = isLine ? lnColors : colors;
         let grey = isLine ? greyLnColor : greyColor;
@@ -183,7 +184,7 @@
       }
 
       // Get a unique value renderer 
-      // Each valueInfo corresponds to a label/color index pair
+      // Each valueInfo corresponds to a label/color pair
       function getRenderer(sel=null) {
         const cs = getColorArray(false, sel);
         const ls = getColorArray(true, sel);
