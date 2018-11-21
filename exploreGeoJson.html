@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Intro to FeatureLayer - 4.9</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+  <script src="https://unpkg.com/terraformer@1.0.7"></script>
+  <script src="https://unpkg.com/terraformer-arcgis-parser@1.0.5"></script>
+  <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.1.0/css/calcite-web.min.css">
+  <link rel="stylesheet" href="https://js.arcgis.com/4.9/esri/css/main.css">
+  <script src="https://js.arcgis.com/4.9/"></script>
+
+  <style>
+    html, body {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+    #viewDiv {
+      height: 100%;
+      width: 100%;
+    }
+    #container {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 410px;
+      height: 210px;
+      padding: 5px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      background-color: white;
+    }
+    #aoi-btn {
+      position: absolute;
+      left: 10px;
+      top: 240px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+    #text-container{
+      position: absolute;
+      right: 10px;
+      bottom: 25px;
+      padding: 5px;
+      background-color: white;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+    .active {
+      color: rgba(91, 164, 190, 1);
+      font-weight: bold;
+    }
+    .active:hover {
+      color: rgba(91, 164, 190, 0.8) !important;
+    }
+
+  </style>
+
+  <script>
+    require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/FeatureLayer",
+        "esri/geometry/Polygon",
+        "esri/core/watchUtils"
+      ],
+      function(
+        Map, MapView,
+        FeatureLayer, Polygon, watchUtils
+      ) {
+
+      /****************************************************
+        * Declare a few constant labels and colors
+        * Label indices correspond to color indices
+      ****************************************************/
+      const labels = ["a", "b", "c", "d", "e"];
+      const colors = ['rgba(255, 99, 132, 0.2)',
+                      'rgba(54, 162, 235, 0.2)',
+                      'rgba(255, 206, 86, 0.2)',
+                      'rgba(75, 192, 192, 0.2)',
+                      'rgba(153, 102, 255, 0.2)']
+      const lnColors = colors.map(c => c.replace('0.2', '1.0'));
+      const greyColor = 'rgba(0, 0, 0, 0.05)';
+      const greyLnColor = 'rgba(0, 0, 0, 0.05)';
+        
+
+      /****************************************************
+        * Initialize the chart
+      ****************************************************/
+      const canvas = document.getElementById("mychart");
+      const ctx = canvas.getContext('2d');
+      const myChart = new Chart(ctx, {
+        maintainAspectRatio: false,
+        type: 'bar',
+        data: {
+          labels: ["a", "b", "c", "d", "e"],
+          datasets: [{
+            label: 'Count of Random Characters',
+            data: [],
+            backgroundColor: getColorArray(),
+            borderColor: getColorArray(true),
+            borderWidth: 0.5
+          }]
+        },
+        options: {
+          scales: {
+            yAxes: [{
+              ticks: {
+                beginAtZero:true
+              }
+            }]
+          }
+        }
+      });
+
+      /****************************************************
+        * Initialize the map
+      ****************************************************/
+      let lyr, lyrView;
+
+      const map = new Map({
+          basemap: "gray-vector"
+        });
+
+      const mapView = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [-73.93242, 40.81342],
+        zoom: 11,
+        constraints: {
+          snapToZoom: false
+        }
+      });
+      mapView.ui.move([ "zoom" ], "top-right");
+      
+      // Define the fields in the GeoJson, Esri expects this to be explicit
+      const fields = [
+        {"name":"OBJECTID","type":"esriFieldTypeOID","alias":"OBJECTID"},
+        {"name":"Shape_Length","type":"esriFieldTypeDouble","alias":"Shape_Length"},
+        {"name":"Shape_Area","type":"esriFieldTypeDouble","alias":"Shape_Area"},
+        {"name":"Ran_Char","type":"esriFieldTypeString","alias":"Ran_Char","length":255},
+        {"name":"Ran_Num","type":"esriFieldTypeSmallInteger","alias":"Ran_Num"}
+      ]
+
+      // load data, convert to feature layer, query initial data to populate chart
+      fetch("https://s3.amazonaws.com/arcgis-samples/NYC_Manhattan_Bronx.geojson")
+        .then(res => res.json())
+        .then(json => Terraformer.ArcGIS.convert(json))
+        .then(jsonFeatures => {
+          const polygons = jsonFeatures.map(f => ({
+            geometry: Polygon.fromJSON(f.geometry),
+            attributes: f.attributes
+          }));
+          lyr = new FeatureLayer({
+            objectIdField: "OBJECTID",
+            geometryType: "polygon",
+            spatialReference: { wkid: 4326 },
+            fields: fields,
+            source: polygons,
+            renderer: getRenderer()
+          })
+          map.add(lyr);
+          return mapView.whenLayerView(lyr);
+        })
+        .then(lV => {
+          lyrView = lV;
+          return watchUtils.whenFalseOnce(lyrView, 'updating');
+        })
+        .then(() => lyrView.queryFeatures(statQuery))
+        .then(updateChartFromQuery)
+        .catch(er => console.log(er));
+
+      /****************************************************
+        * Create and handle color updates
+      ****************************************************/
+      // Get array of colors, if there's a selection all other colors are grey
+      function getColorArray(isLine=false, sel=null) {
+        let cAr = isLine ? lnColors : colors;
+        let grey = isLine ? greyLnColor : greyColor;
+        return labels.map((l,i) => {
+          if(!sel || l === sel) return cAr[i];
+          return grey;
+        });
+      }
+
+      // Get a unique value renderer 
+      // Each valueInfo corresponds to a label/color index pair
+      function getRenderer(sel=null) {
+        const cs = getColorArray(false, sel);
+        const ls = getColorArray(true, sel);
+        const valueInfos = labels.map((l, i) => ({
+          value: l,
+          symbol: {
+            type: "simple-fill",
+            color: cs[i],
+            outline: {
+              color: ls[i],
+              width: 0.5
+            }
+          }
+        }))
+        return {
+          type: "unique-value",
+          field: "Ran_Char",
+          uniqueValueInfos: valueInfos
+        }
+      };
+
+      // Adjust colors based on selection
+      function highlightColor(selection=null){
+        if(!lyr || !myChart) return;
+        lyr.renderer = getRenderer(selection);
+        myChart.data.datasets[0].backgroundColor = getColorArray(false, selection);
+        myChart.data.datasets[0].borderColor = getColorArray(true, selection);
+        myChart.update();
+      }
+      
+      // On chart click, get the selected color
+      canvas.onclick = function(evt){
+        const el = myChart.getElementsAtEvent(evt);
+        if(!el || el.length < 1) {
+          highlightColor(null);
+          return;
+        }
+        const val = myChart.data.labels[el[0]._index];
+        highlightColor(val);
+      }
+
+      /****************************************************
+        * Create and handle chart updates
+      ****************************************************/
+      // variables that should be accessible across functions
+      let highlight;
+      let isAoi = true;
+
+      // query paramaters to count # occurrences for "Ran_Char"
+      const statQuery = {
+        where: "1=1",
+        groupByFieldsForStatistics: "Ran_Char",
+        outStatistics: [{
+          statisticType: "count",
+          onStatisticField: "Ran_Char",
+          outStatisticFieldName: "char_count"
+        }]
+      };
+      // query parameters to get features 1 mile around a point
+      const getRadiusQuery = (point) => ({
+        where: "1=1",
+        geometry: point,
+        distance: 1,
+        units: "miles"
+      });
+      
+      // update the chart data based on statistic query results
+      function updateChartFromQuery(res){
+        if(!myChart || !res || res.features.length < 1) return;
+        const features = res.features.sort((a, b) => {
+          const fa = a.attributes["Ran_Char"];
+          const fb = b.attributes["Ran_Char"];
+          if(fa < fb) return -1;
+          if(fa > fb) return 1;
+          return 0;
+        });
+        myChart.data.datasets[0].data = features.map(f => f.attributes["char_count"]);
+        myChart.update();
+      }
+      // remove the radius query highlight and filtered chart
+      function removeRadiusQuery(){
+        if(!lyrView) return;
+        if(highlight) highlight.remove();
+        lyrView.queryFeatures(statQuery)
+          .then(updateChartFromQuery)
+          .catch(er => console.log(er));
+      }
+      // query data within a given radius from point
+      // update highlights and charts with the results
+      function updateRadiusQuery(point){
+        if(!lyrView) return;
+        // highlights
+        const gQ = getRadiusQuery(point);
+        lyrView.queryObjectIds(gQ)
+          .then(ids => {
+          if(highlight) highlight.remove();
+          highlight = lyrView.highlight(ids);
+          })
+          .catch(er => console.log(er));
+        // stats query
+        const allQ = {...gQ, ...statQuery};
+        lyrView.queryFeatures(allQ)
+          .then(updateChartFromQuery)
+          .catch(er => console.log(er));
+      }
+        
+      // Toggle to control whether radius queries are enabled
+      const aoiBtn = document.getElementById('aoi-btn');
+      aoiBtn.addEventListener("click", () =>{
+        isAoi = !isAoi;
+        if(!isAoi) {
+          removeRadiusQuery();
+          aoiBtn.classList.remove('active');
+          return;
+        };
+        aoiBtn.classList.add('active');
+      })
+      
+      // Handle events and update radius events
+      mapView.on(["click", "drag"], evt => {
+        if(!isAoi) return;
+        evt.stopPropagation();
+        const point = mapView.toMap(evt);
+        updateRadiusQuery(point);
+      })
+        
+
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+  <div id="container">
+    <canvas id="mychart" height="200px" width="400px"></canvas>
+  </div>
+  <div id="text-container">
+    <h3>About</h3>
+    <ul>
+      <li>Click a bar to emphasize that color</li>
+      <li>Click the map or drag to query info around a 1mi buffer</li>
+      <li>Deselect "Query Radius" to interact with the map rather than query</li>
+    </ul>
+  </div>
+  <button id="aoi-btn" class="btn btn-white btn-small active">Query Radius</button>
+</body>
+
+</html>
