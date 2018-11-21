@@ -178,10 +178,8 @@
       function getColorArray(isLine=false, sel=null) {
         let cAr = isLine ? lnColors : colors;
         let grey = isLine ? greyLnColor : greyColor;
-        return labels.map((l,i) => {
-          if(!sel || l === sel) return cAr[i];
-          return grey;
-        });
+        if(!sel) return cAr;
+        return labels.map((l,i) => l === sel ? cAr[i] : grey);
       }
 
       // Get a unique value renderer 
