@@ -59,8 +59,8 @@
         }
       };
       
-      // construct a new graphic given X
-      // limit x to -180 to 180 and start at -180 for step = 0
+      // construct a new graphic given the step
+      // limit -180<=x<=180 for x(step) with x(0)=-180
       function getGraphic(step){
         const x = step - 360 * Math.floor(step / 360) - 180;
         const y = amplitude * Math.sin(b * x);
