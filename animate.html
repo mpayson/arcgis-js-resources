@@ -77,7 +77,7 @@
       // animate a new location
       function animateGraphic(time){
         if(view.graphics.length > 0) view.graphics.pop();
-        view.graphics.push(getGraphic(time / 50)); // 500 defines the speed
+        view.graphics.push(getGraphic(time / 50)); // 50 defines the speed
         requestAnimationFrame(animateGraphic)
       }
       
