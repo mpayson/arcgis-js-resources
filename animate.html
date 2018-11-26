@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Animate Point</title>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.9/esri/css/main.css">
+  <script src="https://js.arcgis.com/4.9/"></script>
+
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/Graphic"
+    ], function(
+      Map, MapView, Graphic
+    ) {
+
+      // a few constants
+      const amplitude = 50;
+      const period = 40;
+      const b = 2*Math.PI / period;
+      
+      // create the map
+      const map = new Map({
+        basemap: "gray-vector"
+      });
+      
+      // create the view
+      const view = new MapView({
+        center: [0, 0],
+        container: "viewDiv",
+        map: map,
+        zoom: 1,
+        constraints: {
+          snapToZoom: false
+        },  
+      });
+      
+      // constant symbol for displaying the data
+      const markerSymbol = {
+        type: "simple-marker",
+        color: [226, 119, 40],
+        outline: {
+          color: [255, 255, 255],
+          width: 2
+        }
+      };
+      
+      // construct a new graphic given X
+      // limit x to -180 to 180 and start at -180 for step = 0
+      function getGraphic(step){
+        const x = step - 360 * Math.floor(step / 360) - 180;
+        const y = amplitude * Math.sin(b * x);
+        return new Graphic({
+          geometry: {
+            type: 'point',
+            longitude: x,
+            latitude: y
+          },
+          symbol: markerSymbol
+        });
+      }
+      
+      // animate a new location
+      function animateGraphic(time){
+        if(view.graphics.length > 0) view.graphics.pop();
+        view.graphics.push(getGraphic(time / 50)); // 500 defines the speed
+        requestAnimationFrame(animateGraphic)
+      }
+      
+      // start animating once the view has loaded
+      view.when(() => animateGraphic(0));
+
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+</body>
+
+</html>
