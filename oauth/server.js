@@ -24,9 +24,9 @@ const credentials = {
 function serializeInfo(session){
   let data;
   try{
-    data = require(FP)
+    data = require(FP);
   } catch(e){
-    data = {}
+    data = {};
   }
   data[session.username] = session.serialize();
   sD = JSON.stringify(data, null, 2);
@@ -35,8 +35,8 @@ function serializeInfo(session){
     fs.writeFile(FP, sD, err => {
       if(err) rej(err);
       res('Stored!');
-    })
-  })
+    });
+  });
 }
 
 // OAuth autorize endpoint
