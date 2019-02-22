@@ -15,5 +15,6 @@
 1. `$ git clone https://github.com/mpayson/arcgis-js-res.git`
 2. `$ cd arcgis-js-res/oauth`
 3. `$ npm install`
-4. `$ npm start`
-5. visit [http://localhost:3000/](http://localhost:3000/)
+4. `$ mkdir data`
+5. `$ npm start`
+6. visit [http://localhost:3000/](http://localhost:3000/)

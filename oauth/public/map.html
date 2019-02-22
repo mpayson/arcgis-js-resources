@@ -37,18 +37,18 @@
 
         esriID.registerToken(session);
 
-        var map = new Map({
+        let map = new Map({
           basemap: "gray-vector"
         });
 
-        var view = new MapView({
+        let view = new MapView({
           container: "viewDiv",
           map: map,
           center: [-99.51343, 39.74966],
           zoom: 4
         });
 
-        var lyr = new ImageryLayer({
+        let lyr = new ImageryLayer({
           portalItem:{
             id: '3f6068f9712a441bbd14ec6af74576ca'
           }
