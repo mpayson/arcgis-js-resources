@@ -16,7 +16,7 @@
 
 > Same as `pipebins`, but with a [hosted tile layer](https://doc.arcgis.com/en/arcgis-online/manage-data/publish-tiles-from-features.htm) instead of a bin feature layer. To mix it up, you can also select an area of interest at any scale to query capacity / features _on the server_
 
-## User interactions
+## User Interactions
 
 #### `selectaoi` [code](/selectaoi.html) | [live](https://mpayson.github.io/arcgis-js-res/selectaoi.html)
 
@@ -25,3 +25,17 @@
 #### `animate` [code](/animate.html) | [live](https://mpayson.github.io/arcgis-js-res/animate.html)
 
 > Animate a point (eg [graphic](https://developers.arcgis.com/javascript/latest/api-reference/esri-Graphic.html))!
+
+## Workflows
+
+#### `OAuth 2.0` [code](/oauth)
+
+> End-to-end, [server-based](https://developers.arcgis.com/documentation/core-concepts/security-and-authentication/server-based-user-logins/), [user-based](https://developers.arcgis.com/documentation/core-concepts/security-and-authentication/signing-in-arcgis-online-users/), oversimplified, OAuth 2.0 workflow. Shows: authenticating a named user, maintaining tokens & refresh tokens, and forwarding to the [ArcGIS JS API](https://developers.arcgis.com/javascript/) when needed.
+
+> Note, this isn't ready for production--the tokens should be secured, associated with a legitimate identity system not a `json` file, etc
+
+## Issues and Contributing
+
+Want to request a new sample? Have a question? Would [__love__](https://github.com/mpayson/arcgis-js-res/issues) to hear from you.
+
+And PRs always welcome!

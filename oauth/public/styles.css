@@ -1,0 +1,25 @@
+html, body, #viewDiv {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  background-color: #005e95;
+}
+
+.msg-window { 
+  padding: 60px;
+  max-width:600px;
+  margin:20vh auto;
+  text-align: center;
+  box-shadow: 2px 2px 3px #888888;
+  background-color: #ffffff;
+}
+.min-bottom-padding{
+  margin-bottom: 0.5rem;
+}
+.incr-top-padding{
+  margin-top: 1.55rem;
+}
+.hidden{
+  display: none
+}
