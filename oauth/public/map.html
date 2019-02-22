@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>2. Log In</title>
+    <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.2.4/css/calcite-web.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://js.arcgis.com/4.10/esri/css/main.css">
+    <script src="https://js.arcgis.com/4.10/"></script>
+  </head>
+  <body>
+    <script>
+
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/layers/ImageryLayer",
+      "esri/identity/IdentityManager"
+    ], function(
+      Map, MapView, ImageryLayer, esriID
+    ) {
+
+      const text = document.getElementById("un-text");
+      const btn = document.getElementById("go-btn");
+      const msgWindow = document.getElementById("msg-window");
+
+      btn.onclick = function(){
+        fetch(`/partnerauth?username=${text.value}`)
+          .then(res => res.json())
+          .then(onLogIn)
+          .catch(er => console.log(er))
+      }
+
+      function onLogIn(session){
+        msgWindow.className += " hidden";
+
+        esriID.registerToken(session);
+
+        var map = new Map({
+          basemap: "gray-vector"
+        });
+
+        var view = new MapView({
+          container: "viewDiv",
+          map: map,
+          center: [-99.51343, 39.74966],
+          zoom: 4
+        });
+
+        var lyr = new ImageryLayer({
+          portalItem:{
+            id: '3f6068f9712a441bbd14ec6af74576ca'
+          }
+        });
+        map.add(lyr);
+
+      }
+
+    });
+
+    </script>
+
+    <div id="viewDiv"/>
+    <div id="msg-window" class="msg-window">
+      <h1>"Log In"</h1>
+      <input id="un-text" size="50" style="width: 250px; margin: 0 auto" placeholder="ArcGIS User Name">
+      <button id="go-btn" class="btn" style="margin: 10px">GO</button>
+    </div>
+
+  </body>
+</html>
