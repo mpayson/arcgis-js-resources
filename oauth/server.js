@@ -71,10 +71,12 @@ app.get("/partnerauth", function(req, res) {
   if(session.tokenExpires.getTime() > Date.now()){
     res.json(session.toCredential());
   } else {
-    session.refreshSession();
-    serializeInfo(session);
-    res.json(session.toCredential());
-  }
+    session.refreshSession()
+    .then(session => {
+      serializeInfo(session);
+      res.json(session.toCredential());
+    });
+}
 })
 
 app.use(express.static('public'));
