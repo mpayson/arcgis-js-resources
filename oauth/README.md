@@ -1,6 +1,6 @@
 # oauth
 
-> End-to-end, server-based, user-based, oversimplified OAuth 2.0 workflow with ArcGIS ([more](https://developers.arcgis.com/documentation/core-concepts/security-and-authentication/))
+> End-to-end, server-based, user-based, POC OAuth 2.0 workflow with ArcGIS ([more](https://developers.arcgis.com/documentation/core-concepts/security-and-authentication/))
 
 ## Files
 
