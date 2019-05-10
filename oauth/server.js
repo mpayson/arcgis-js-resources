@@ -12,12 +12,13 @@ const { clientId } = require("./config.json");
 
 // file path to where the user data is stored
 const FP = './data/data.json';
-
+ 
 // configuration to initiate the oauth process
 const credentials = {
   clientId,
   redirectUri: "http://localhost:3000/authenticate",
-  refreshTokenTTL: 2147483647
+  refreshTokenTTL: 2147483647,
+  duration: 2
 };
 
 // store a given session to the json file

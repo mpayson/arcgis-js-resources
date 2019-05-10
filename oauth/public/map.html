@@ -33,6 +33,8 @@
       }
 
       function onLogIn(session){
+        const date = new Date(session.expires);
+        console.log(session, date.toString());
         msgWindow.className += " hidden";          
 
         esriID.registerToken(session);
