@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>Demo</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.11/esri/themes/light/main.css"
+    />
+    <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.2.5/css/calcite-web.min.css">
+    <style>
+    html,
+    body,
+    #view-div {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+    #side-panel {
+      position: absolute;
+      top: 50%;
+      margin-top: -20rem;
+      left: 1rem;
+      height: 40rem;
+      width: 25%;
+      min-width: 20rem;
+      overflow-y: scroll;
+      background: rgba(0, 171, 189, 0.95);
+    }
+    .panel-title{
+      background: rgb(0, 171, 189);
+      padding: 0.5rem;
+      margin: 0;
+      color: white;
+    }
+    .panel-header{
+      margin: 0.25rem 0.5rem 0.5rem 0.5rem;
+      color: white;
+    }
+    .panel-section{
+      clear: left;
+    }
+    .slider-label {
+      width: 2rem;
+      margin: 5px 5px 0px 5px;
+    }
+    #select {
+      background-color: rgba(255, 255, 255, 0);
+      height: 2rem;
+      width: 45%;
+      color: white;
+      margin: 0.4rem 0.5rem 0rem 0rem;
+      border: none;
+      border-bottom: 1px solid white;
+      outline: white;
+      box-shadow: none;
+    }
+    #slider {
+      display: inline-block;
+      width: calc(100% - 6rem);
+      max-width: 100%;
+    }
+    #draw-btn{
+      margin: 0.4rem 0rem 0rem 0.5rem;
+      width: 45%;
+    }
+    </style>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+    <script src="https://js.arcgis.com/4.11/"></script>
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/FeatureLayer",
+        "esri/layers/GraphicsLayer",
+        "esri/Graphic",
+        "esri/widgets/Sketch/SketchViewModel",
+        "esri/core/watchUtils"
+      ], function(Map, MapView, FeatureLayer, GraphicsLayer, Graphic, SketchViewModel, wU) {
+
+      /****************************************************
+         * Construct map & layers
+      ****************************************************/
+
+        const map = new Map({
+          basemap: "gray-vector"
+        });
+
+        const view = new MapView({
+          map: map,
+          container: "view-div",
+          center: [-118.39609, 33.88669],
+          zoom: 13
+        });
+        view.ui.move('zoom', 'top-right');
+
+        const lyr = new FeatureLayer({
+          portalItem:{
+            id: 'a737728a4e1d4271b2865114ece16137'
+          },
+          outFields: ['date', 'NAME', 'count_']
+        });
+        let sketchLayer = new GraphicsLayer();
+        map.layers.addMany([sketchLayer, lyr]);
+
+      /****************************************************
+        * Initialize the chart
+      ****************************************************/
+      const canvas = document.getElementById("chart");
+      const ctx = canvas.getContext('2d');
+      Chart.defaults.global.animation = false;
+      const chart = new Chart(ctx, {
+        maintainAspectRatio: false,
+        type: 'bar',
+        options: {
+          scales: {
+            xAxes: [{
+              display: true,
+              scaleLabel: {
+                display: true,
+                labelString: 'Count'
+              }
+            }],
+            yAxes: [{
+              display: true,
+              scaleLabel: {
+                display: true,
+                labelString: '# Occurrences'
+              },
+              // ticks: {
+              //   suggestedMax: 4500,
+              // }
+            }]
+          },
+          legend: {
+              display: false
+          },
+        }
+      });
+
+      /****************************************************
+         * Build filtering / query functions then set initial state
+      ****************************************************/
+
+        let lyrView;
+        let start = new Date("7/30/17 7:00:00 UTC");
+        let end = new Date("8/1/17 7:00:00 UTC");
+        let state = {
+          dayDelta: 0,
+          geometry: null,
+          where: "1=1",
+          drawing: false
+        }
+
+        function update(){
+          if(!lyrView) return;
+          const qStart = addDays(start, state.dayDelta);
+          const qEnd = addDays(end, state.dayDelta);
+          lyrView.filter = {
+            timeExtent: {
+              start: qStart,
+              end: qEnd
+            }
+          }
+          lyrView.effect = {
+            filter: {where: state.where, geometry: state.geometry},
+            excludedEffect: "saturate(30%) opacity(30%)"
+          }
+
+          const query = {
+            where: state.where,
+            geometry: state.geometry,
+            outFields: "count_",
+            timeExtent: {
+              start: qStart,
+              end: qEnd
+            }
+          }
+          lyrView.queryFeatures(query)
+            .then(res => {
+              chart.data = getDatasets(res.features);
+              chart.update();
+            })
+            .catch(er => console.log(er));
+        }
+
+        view.whenLayerView(lyr)
+          .then(lV => {
+            lyrView = lV;
+            lyrView.filter = {
+              timeExtent: {
+                start: start,
+                end: end
+              }
+            }
+            return wU.whenFalseOnce(lyrView, 'updating');
+          })
+          .then(_ => 
+            update()
+          )
+          .catch(er => console.log(er));
+
+      /****************************************************
+         * Handle DOM events
+      ****************************************************/
+
+        const slideValue = document.getElementById('slide-value');
+        document.getElementById('slider').oninput = function(e){
+          if(!e.target.value) return;
+          state.dayDelta = parseInt(e.target.value);
+          const curDate = addDays(start, state.dayDelta);
+          const curDateStr = curDate.toLocaleDateString().slice(0,-5);
+          slideValue.innerText = curDateStr;
+          update();
+        }
+
+        document.getElementById('select').onchange = function(e){
+          if(!e.target.value) return;
+          state.where = e.target.value;
+          update();
+        }
+        
+      /****************************************************
+         * Handle draw events
+      ****************************************************/
+
+        const drawBtn = document.getElementById('draw-btn');
+        const sketchViewModel = new SketchViewModel({
+          layer: sketchLayer,
+          view: view,
+          defaultUpdateOptions: {
+            tool: 'move'
+          },
+          polygonSymbol: {
+            type: "simple-fill",
+            color: [255, 255, 255, 0],
+            outline: {
+            color: [50, 50, 50, 0.6],
+              width: 1
+            }
+          }
+        })
+        sketchViewModel.on(["create"], function(event) {
+          if (event.state == "complete") {
+            state.geometry = event.graphic.geometry;
+            update();
+          }
+        });
+        sketchViewModel.on(["update"], function(event) {
+          const eventInfo = event.toolEventInfo;
+          if (eventInfo && eventInfo.type.includes("move")) {
+            if (eventInfo.type === "move-stop") {
+              state.geometry = event.graphics[0].geometry;
+              update();
+            }
+          }
+        });
+        
+        drawBtn.onclick = _ => {
+          console.log(state.drawing);
+          if(!state.drawing){
+            state.drawing = true;
+            sketchViewModel.create('polygon');
+            drawBtn.innerText = 'Clear';
+          } else {
+            state.drawing = false;
+            sketchLayer.removeAll();
+            drawBtn.innerText = 'Draw';
+            state.geometry = null;
+            update();
+          }
+        }
+
+      /****************************************************
+         * Utils
+      ****************************************************/
+
+        function addDays(date, days) {
+          var result = new Date(date);
+          result.setDate(result.getDate() + days);
+          return result;
+        }
+
+        function getDatasets (features, field='count_') {
+          let [data, minMax] = features.reduce(([d, mm], f) => {
+            let v = f.attributes[field];
+            if(v !== 0 && !v) return [d,mm];
+            const min = v < mm[0] ? v : mm[0];
+            const max = v > mm[1] ? v : mm[1];
+            d.push(v);
+            return [d, [min,max]]
+          }, [[], [10000, 0]]);
+          const binRes = binHistogram(data, minMax);
+          return {
+            labels: binRes.labels,
+            datasets: [{
+              label: "Count Distribution",
+              fill: false,
+              data: binRes.data,
+              borderColor: "rgba(255, 255, 255, 0.8)",
+              backgroundColor: "rgba(255, 255, 255, 0)",
+              borderWidth: 2
+            }]
+          }
+        }
+
+        function binHistogram(data, minMax, nBars=7, normalize=false){
+
+          let diff = Math.log10(minMax[1] - minMax[0] + 1);
+          const step = diff/nBars;
+
+          let labels = [];
+          let emptyDataset = [];
+          for(let i = 0; i < nBars; i++){
+            const label = Math.ceil(Math.pow(10, i * step))
+            labels.push(label);
+            emptyDataset.push(0)
+          }
+          let count = 0;
+          let dataBin = emptyDataset.slice();
+          for(let i=0; i < data.length; i++){
+            const minDiff = data[i] - minMax[0];
+            const k = minDiff === 0
+              ? 0
+              : Math.floor(Math.log10(minDiff) / step);
+            dataBin[k] += 1;
+            count += 1;
+          }
+          console.log(dataBin);
+          let outData = normalize ? dataBin.map(v => v/count) : dataBin;
+          return {
+            labels: labels,
+            data: outData
+          }
+        }
+
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="view-div"></div>
+    <div id="side-panel">
+      <h3 class="panel-title" style="text-align: center">Demo</h3>
+      <div>
+        <div class="panel-section">
+          <h4 class="panel-header left">Time filter</h4>
+          <h4 id="slide-value" class="panel-header right">7/30</button>
+        </div>
+        <div class="panel-section" style="text-align: center">
+          <div class="left slider-label">7/30</div>
+          <input id="slider" type="range" min="0" max="31" value="0" step="1" aria-valuemin="0" aria-valuemax="31" aria-valuenow="0">
+          <div class="right slider-label">8/30</div>
+        </div>
+        <div style="text-align: center">
+          <h4 class="panel-header left">Geometry filter</h4>
+          <h4 class="panel-header right">Attribute filter</h4>
+        </div>
+        <div style="text-align: center">
+          <button id="draw-btn" class="btn btn-clear-white btn-small left">Draw</button>
+          <select id="select" class="right">
+            <option value="1=1">All</option>
+            <option value="NAME = 'Hawthorne'">Hawthorne</option>
+            <option value="NAME = 'Rosecrans'">Rosecrans</option>
+            <option value="NAME = 'San Diego'">San Diego</option>
+          </select>
+        </div>
+        <div class="panel-section" style="padding: 1rem 0.25rem 0rem 0rem">
+          <canvas id="chart" height="100px" width="95%"></canvas>
+        </div>
+        
+      </div>
+    </div>
+  </body>
+</html>
