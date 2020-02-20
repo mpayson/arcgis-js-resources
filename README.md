@@ -22,13 +22,7 @@
 
 ## Vector Data
 
-#### `explore` [code](/explore.html) | [live](https://mpayson.github.io/arcgis-js-resources/explore.html)
-
-> Use client-side [filters](https://developers.arcgis.com/javascript/latest/api-reference/esri-views-layers-support-FeatureFilter.html), [effects](https://developers.arcgis.com/javascript/latest/api-reference/esri-views-layers-support-FeatureEffect.html), and [queries](https://developers.arcgis.com/javascript/latest/api-reference/esri-tasks-support-Query.html) defined by [where clauses](https://pro.arcgis.com/en/pro-app/help/mapping/navigation/sql-reference-for-elements-used-in-query-expressions.htm), [time extents](https://developers.arcgis.com/javascript/latest/api-reference/esri-TimeExtent.html), and [geometries](https://developers.arcgis.com/javascript/latest/api-reference/esri-tasks-support-Query.html#geometry). In particular, this shows incident counts on roads near Manhattan beach, and adjusts the display of these roads, as well as an incident count histogram, based on incident timestamps, areas of interest, and road attributes.
-
 #### `exploreGeoJson` [code](/exploreGeoJson.html) | [live](https://mpayson.github.io/arcgis-js-resources/exploreGeoJson.html)
-
-> **NOTE, this is old, there is now a [GeoJSON layer](https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-GeoJSONLayer.html)**
 
 > Display ~50k GeoJson building footprints and dynamically style / perform geospatial queries _on the client_. The GeoJson is converted to ArcGIS Json with [Terraformer](http://terraformer.io/arcgis-parser/) on load and the data is cut from Microsoft's open [building footprints](https://github.com/Microsoft/USBuildingFootprints)
 
