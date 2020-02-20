@@ -5,8 +5,8 @@
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>Pipe Tiles</title>
   
-  <link rel="stylesheet" href="https://js.arcgis.com/4.11/esri/themes/light/main.css">
-  <script src="https://js.arcgis.com/4.11/"></script>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.14/esri/themes/light/main.css">
+  <script src="https://js.arcgis.com/4.14/"></script>
 
   <style>
     html,
@@ -28,13 +28,10 @@
       "esri/layers/GraphicsLayer",
       "esri/Graphic",
       "esri/widgets/Home",
-      "esri/widgets/Legend",
-      "dojo/dom",
-      "dojo/html",
-      "dojo/domReady!"
+      "esri/widgets/Legend"
     ],
     function(WebMap, MapView, FeatureLayer, SketchViewModel,
-            GraphicsLayer, Graphic, Home, Legend, dom, html) {
+            GraphicsLayer, Graphic, Home, Legend) {
 
       const CONFIG = {
         mapId: '6e311366a87a4d35aae8e6bafb20769e',
@@ -76,7 +73,7 @@
       const legend = new Legend({
         view: view
       })
-      const avgTextElem = dom.byId("avg-text")
+      const avgTextElem = document.getElementById("avg-text")
       view.ui.add([homeButton], 'top-left');
       view.ui.add([avgTextElem, legend], 'top-right');
       
@@ -131,17 +128,9 @@
       ****************************************************/
       let highlight;
 
-      sketchViewModel.on("create-complete", event => {
-        const geometry = event.geometry;
-        view.graphics.removeAll();
-        polygonGraphicsLayer.removeAll();
-        
-        // Add the selected area as a graphic
-        const graphic = new Graphic({
-          geometry: geometry,
-          symbol: sketchViewModel.graphic.symbol
-        });
-        polygonGraphicsLayer.add(graphic);
+      sketchViewModel.on("create", event => {
+        if(event.state !== "complete") return;
+        const geometry = event.graphic.geometry;
 
         if(!pipeLyr) return;
 
@@ -159,7 +148,7 @@
           const graphics = res.features;
           if(graphics.length < 1) return;          
           const avg = graphics[0].attributes.CAPACITY_avg;
-          html.set(avgTextElem, `Avg Capacity: ${avg.toFixed(2)}`);
+          avgTextElem.innerText = `Avg Capacity: ${avg.toFixed(2)}`;
         })
 
         // server-side geometry query
@@ -177,8 +166,7 @@
           highlight = pipeLyrView.highlight(graphics);
           console.log(graphics);
         })
-        
-
+      
       });
 
     });

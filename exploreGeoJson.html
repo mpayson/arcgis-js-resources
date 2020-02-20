@@ -9,8 +9,8 @@
   <script src="https://unpkg.com/terraformer@1.0.7"></script>
   <script src="https://unpkg.com/terraformer-arcgis-parser@1.0.5"></script>
   <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.1.0/css/calcite-web.min.css">
-  <link rel="stylesheet" href="https://js.arcgis.com/4.9/esri/css/main.css">
-  <script src="https://js.arcgis.com/4.9/"></script>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.14/esri/css/main.css">
+  <script src="https://js.arcgis.com/4.14/"></script>
 
   <style>
     html, body {
@@ -61,13 +61,13 @@
     require([
         "esri/Map",
         "esri/views/MapView",
-        "esri/layers/FeatureLayer",
-        "esri/geometry/Polygon",
-        "esri/core/watchUtils"
+        "esri/layers/GeoJSONLayer",
+        "esri/core/watchUtils",
+        "esri/core/promiseUtils"
       ],
       function(
-        Map, MapView,
-        FeatureLayer, Polygon, watchUtils
+        Map, MapView, GeoJSONLayer,
+        watchUtils, promiseUtils
       ) {
 
       /****************************************************
@@ -144,32 +144,20 @@
       ]
 
       // load data, convert to feature layer, query initial data to populate chart
-      fetch("https://s3.amazonaws.com/arcgis-samples/NYC_Manhattan_Bronx.geojson")
-        .then(res => res.json())
-        .then(json => Terraformer.ArcGIS.convert(json))
-        .then(jsonFeatures => {
-          const polygons = jsonFeatures.map(f => ({
-            geometry: Polygon.fromJSON(f.geometry),
-            attributes: f.attributes
-          }));
-          lyr = new FeatureLayer({
-            objectIdField: "OBJECTID",
-            geometryType: "polygon",
-            spatialReference: { wkid: 4326 },
-            fields: fields,
-            source: polygons,
-            renderer: getRenderer()
-          })
-          map.add(lyr);
-          return mapView.whenLayerView(lyr);
-        })
+      lyr = new GeoJSONLayer({
+        url: "https://s3.amazonaws.com/arcgis-samples/NYC_Manhattan_Bronx.geojson",
+        renderer: getRenderer()
+      });
+      map.add(lyr);
+      mapView.whenLayerView(lyr)
         .then(lV => {
           lyrView = lV;
           return watchUtils.whenFalseOnce(lyrView, 'updating');
         })
-        .then(() => lyrView.queryFeatures(statQuery))
+        .then(_ => lyrView.queryFeatures(statQuery))
         .then(updateChartFromQuery)
         .catch(er => console.log(er));
+
 
       /****************************************************
         * Create and handle color updates
@@ -207,6 +195,8 @@
       };
 
       // Adjust colors based on selection
+      // TODO, this could also use effects instead of redefining the renderer
+      // https://developers.arcgis.com/javascript/latest/api-reference/esri-views-layers-GeoJSONLayerView.html#effect
       function highlightColor(selection=null){
         if(!lyr || !myChart) return;
         lyr.renderer = getRenderer(selection);
@@ -272,13 +262,14 @@
           .then(updateChartFromQuery)
           .catch(er => console.log(er));
       }
+
       // query data within a given radius from point
       // update highlights and charts with the results
-      function updateRadiusQuery(point){
+      const updateRadiusQuery = promiseUtils.debounce(function(point) {
         if(!lyrView) return;
         // highlights
         const gQ = getRadiusQuery(point);
-        lyrView.queryObjectIds(gQ)
+        const pOIDquery = lyrView.queryObjectIds(gQ)
           .then(ids => {
           if(highlight) highlight.remove();
           highlight = lyrView.highlight(ids);
@@ -286,10 +277,12 @@
           .catch(er => console.log(er));
         // stats query
         const allQ = {...gQ, ...statQuery};
-        lyrView.queryFeatures(allQ)
+        const pStatQuery = lyrView.queryFeatures(allQ)
           .then(updateChartFromQuery)
           .catch(er => console.log(er));
-      }
+        // return the queries
+        return Promise.all([pOIDquery, pStatQuery]);
+      });
         
       // Toggle to control whether radius queries are enabled
       const aoiBtn = document.getElementById('aoi-btn');

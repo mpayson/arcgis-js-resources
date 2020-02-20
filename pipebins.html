@@ -5,8 +5,8 @@
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>Pipe Bins</title>
   
-  <link rel="stylesheet" href="https://js.arcgis.com/4.11/esri/themes/light/main.css">
-  <script src="https://js.arcgis.com/4.11/"></script>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.14/esri/themes/light/main.css">
+  <script src="https://js.arcgis.com/4.14/"></script>
 
   <style>
     html,
@@ -27,13 +27,10 @@
       "esri/widgets/Sketch/SketchViewModel",
       "esri/layers/GraphicsLayer",
       "esri/widgets/Home",
-      "esri/widgets/Legend",
-      "dojo/dom",
-      "dojo/html",
-      "dojo/domReady!"
+      "esri/widgets/Legend"
     ],
     function(WebMap, MapView, FeatureLayer, SketchViewModel,
-            GraphicsLayer, Home, Legend, dom, html) {
+            GraphicsLayer, Home, Legend) {
 
       const CONFIG = {
         mapId: 'cabaa3e87ccb495691b3126a121852ca',
@@ -62,7 +59,6 @@
       let binLyr, pipeLyr, pipeLyrView;
       
       view.when(() => {      
-        console.log(map.layers);  
         pipeLyr = map.layers.find(l => l.title === CONFIG.pipeLyrTitle);
         binLyr = map.layers.find(l => l.title === CONFIG.binLyrTitle);
         view.whenLayerView(pipeLyr).then(lyrView => pipeLyrView = lyrView);
@@ -75,7 +71,7 @@
       const legend = new Legend({
         view: view
       })
-      const avgTextElem = dom.byId("avg-text")
+      const avgTextElem = document.getElementById("avg-text")
       view.ui.add([homeButton], 'top-left');
       view.ui.add([avgTextElem, legend], 'top-right');
       
@@ -84,9 +80,8 @@
          * (if there's overlap between bin/pipe visible scales as set in ArcGIS Online)
       ****************************************************/
       
-      view.watch("scale", (scale) => {
+      view.watch("scale", scale => {
         if(!pipeLyr || !binLyr) return;
-        console.log(scale, pipeLyr.minScale, pipeLyr.maxScale);
         if(scale > pipeLyr.minScale) {
           binLyr.opacity = 1;
         } else if(scale < binLyr.maxScale) {
@@ -131,9 +126,10 @@
       ****************************************************/
       let highlight;
 
-      sketchViewModel.on("create-complete", event => {
-        const geometry = event.geometry;
-        view.graphics.removeAll();
+      sketchViewModel.on("create", event => {
+        if(event.state !== "complete") return;
+        const geometry = event.graphic.geometry;
+        polygonGraphicsLayer.removeAll();
 
         if(!pipeLyrView) return;
 
@@ -151,7 +147,7 @@
           const graphics = res.features;
           if(graphics.length < 1) return;          
           const avg = graphics[0].attributes.CAPACITY_avg;
-          html.set(avgTextElem, `Avg Capacity: ${avg.toFixed(2)}`);
+          avgTextElem.innerText = `Avg Capacity: ${avg.toFixed(2)}`;
         })
         
         // client-side query for all data and geometries
@@ -166,8 +162,7 @@
           highlight = pipeLyrView.highlight(graphics);
           console.log(graphics);
         })
-
-      });
+      })
 
     });
   </script>
